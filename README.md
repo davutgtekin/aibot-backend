@@ -30,7 +30,7 @@ Bu projenin çalışması için bir frontend arayüzüne ihtiyacı vardır. Uyum
 
 1.  **Depoyu Klonlayın:**
     ```bash
-    git clone https://github.com/[kullanici-adiniz]/chatbot-backend.git
+    git clone https://github.com/[davutgtekin]/chatbot-backend.git
     cd chatbot-backend
     ```
 
