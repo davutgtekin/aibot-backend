@@ -1,4 +1,4 @@
-// server.js - TAM ve DÜZELTİLMİŞ KOD
+// server.js - HATA AYIKLAMA MODLU TAM KOD
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
@@ -20,53 +20,56 @@ app.get("/", (req, res) => {
 /**
  * POST /chat
  * Frontend'den gelen mesajları alıp Gemini API'ye gönderen ana fonksiyon
+ * Hata ayıklama logları eklendi.
  */
-// Doğru fonksiyon tanımı burada: "async" kelimesi var
 app.post("/chat", async (req, res) => {
   try {
     const userMessage = req.body.message;
-
-    if (!userMessage) {
-      return res.status(400).json({ reply: "Mesaj içeriği boş olamaz." });
-    }
-
-    if (!API_KEY) {
-        console.error("API_KEY .env dosyasında tanımlı değil!");
-        return res.status(500).json({ reply: "Sunucu yapılandırma hatası: API anahtarı eksik." });
-    }
-
-    // YENİ VE DOĞRU SATIR
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${API_KEY}`;
 
-    // Google'ın istediği doğru formatta hazırlanmış veri
     const payload = {
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: userMessage }],
-        },
+      contents: [{
+        role: "user",
+        parts: [{ text: userMessage }],
+      }],
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
       ],
     };
 
-    // Axios ile Google'a isteği gönder
     const response = await axios.post(endpoint, payload, {
       headers: { "Content-Type": "application/json" },
     });
 
-    // Google'dan gelen cevabın içinden metni güvenli bir şekilde çıkar
-    const reply =
-      response.data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "Üzgünüm, geçerli bir cevap alınamadı.";
+    // --- EN ÖNEMLİ DEBUG ADIMI ---
+    // Google'dan gelen tüm cevabı terminale yazdırıyoruz.
+    console.log("--- Google'dan Gelen Tam Yanıt ---");
+    console.log(JSON.stringify(response.data, null, 2));
+    console.log("---------------------------------");
+    // ---------------------------------
 
-    // Cevabı frontend'e JSON olarak gönder
-    res.json({ reply });
+    // Cevabın içinde "candidates" olup olmadığını kontrol et
+    if (response.data.candidates && response.data.candidates.length > 0) {
+      const reply = response.data.candidates[0].content.parts[0].text;
+      res.json({ reply });
+    } else {
+      // Eğer "candidates" yoksa, nedenini anlamaya çalış
+      const feedback = response.data.promptFeedback;
+      const blockReason = feedback ? feedback.blockReason : "Bilinmeyen Neden";
+      console.error("Google'dan geçerli bir cevap alınamadı. Sebep:", blockReason, feedback);
+      res.json({ reply: `Bunu anlayamadım 🤯 (Sebep: ${blockReason})` });
+    }
 
   } catch (error) {
-    // Hata oluşursa, terminale detaylı bilgi yaz
-    console.error("Gemini API veya sunucu hatası:", error.response?.data || error.message);
-    
-    // Frontend'e genel bir hata mesajı gönder
-    res.status(500).json({ reply: "Üzgünüm, sunucuda bir hata oluştu." });
+    // Eğer bir ağ hatası veya 4xx/5xx gibi bir durum olursa, burası çalışır.
+    console.error("--- KRİTİK HATA ---");
+    // Hata nesnesinin tamamını incelemek için console.dir kullanmak daha iyi olabilir
+    console.dir(error.response ? error.response.data : error, { depth: null });
+    console.error("-------------------");
+    res.status(500).json({ reply: "Üzgünüm, sunucuda kritik bir hata oluştu." });
   }
 });
 
