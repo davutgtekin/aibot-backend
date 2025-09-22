@@ -44,7 +44,7 @@ app.post("/chat", async (req, res) => {
       headers: { "Content-Type": "application/json" },
     });
 
-    // --- EN ÖNEMLİ DEBUG ADIMI ---
+    // ---  DEBUG  ---
     // Google'dan gelen tüm cevabı terminale yazdırıyoruz.
     console.log("--- Google'dan Gelen Tam Yanıt ---");
     console.log(JSON.stringify(response.data, null, 2));
