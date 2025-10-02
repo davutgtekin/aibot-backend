@@ -20,8 +20,7 @@ const vertex_ai = new VertexAI({
 });
 
 // Kullanacağımız modeli belirliyoruz.
-const model = "gemin-2.5-pro";
- // Bu, Vertex AI'daki EN stabil ve genel model adıdır.
+const model = 'gemini-2.5-flash'; // Bu, Vertex AI'daki EN stabil ve genel model adıdır.
 
 const generativeModel = vertex_ai.getGenerativeModel({
   model: model,
